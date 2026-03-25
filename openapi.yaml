@@ -21,6 +21,14 @@ components:
       bearerFormat: JWT
 
   parameters:
+    search:
+      name: search
+      in: query
+      description: Free-text search term for list filtering
+      required: false
+      schema:
+        type: string
+        example: "toko"
     sort:
       name: sort
       in: query
@@ -32,6 +40,25 @@ components:
       schema:
         type: string
         example: "-created_at"
+    page:
+      name: page
+      in: query
+      description: Page number (1-based)
+      required: false
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+    limit:
+      name: limit
+      in: query
+      description: Number of items per page (max 100)
+      required: false
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 100
 
   schemas:
     Error:
@@ -46,6 +73,27 @@ components:
       required:
         - code
         - message
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 50
+        total_pages:
+          type: integer
+          example: 5
+      required:
+        - page
+        - limit
+        - total
+        - total_pages
 
     User:
       type: object
@@ -90,19 +138,46 @@ components:
       properties:
         id:
           type: string
-          example: "1"
-        merchant:
+        merchant_id:
+          type: integer
+        merchant_name:
           type: string
-          example: "Merchant A"
         status:
           type: string
-          example: "completed , processing , or failed"
         amount:
           type: string
-          example: "alice@example.com"
         created_at:
           type: string
           format: date-time
+
+    CreatePaymentRequest:
+      type: object
+      required: [merchant_id, amount, status]
+      properties:
+        merchant_id:
+          type: integer
+        amount:
+          type: string
+        status:
+          type: string
+
+    UpdatePaymentRequest:
+      type: object
+      required: [merchant_id, amount, status]
+      properties:
+        merchant_id:
+          type: integer
+        amount:
+          type: string
+        status:
+          type: string
+
+    ReviewPaymentRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
 
   responses:
     LoginResponse:
@@ -127,12 +202,16 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              merchants:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Merchant"
+            allOf:
+              - $ref: "#/components/schemas/PaginationMeta"
+              - type: object
+                properties:
+                  merchants:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Merchant"
+                required:
+                  - merchants
     UnauthorizedError:
       description: Authentication failed or missing credentials
       content:
@@ -144,7 +223,19 @@ components:
               summary: Missing or invalid token
               value:
                 code: 401
-                message: "Unauthenticated: missing or invalid token"
+                message: "missing auth header"
+    BadRequestError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
 
 paths:
   /dashboard/v1/auth/login:
@@ -177,11 +268,17 @@ paths:
       operationId: getDashboardV1Merchants
       security:
         - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/search"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
       responses:
         "200":
           $ref: "#/components/responses/MerchantListResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
     post:
       tags: [Merchant]
       summary: Create a merchant
@@ -201,6 +298,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Merchant"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
 
@@ -251,6 +350,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Merchant"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"
     delete:
@@ -271,16 +372,22 @@ paths:
         "401":
           $ref: "#/components/responses/UnauthorizedError"
 
+  # ── Payment ───────────────────────────────────────────
   /dashboard/v1/payments:
     get:
-      summary: List of payments
+      tags: [Payment]
+      summary: List payments
+      operationId: getDashboardV1Payments
       parameters:
+        - $ref: "#/components/parameters/search"
         - $ref: "#/components/parameters/sort"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
         - in: query
           name: status
           schema:
             type: string
-          description: status of payment (completed , processing , or failed)
+          description: status of payment (completed, processing, or failed)
         - in: query
           name: id
           schema:
@@ -291,5 +398,103 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/PaymentListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    post:
+      tags: [Payment]
+      summary: Create a payment
+      operationId: postDashboardV1Payments
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentRequest"
+      responses:
+        "201":
+          description: Created payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /dashboard/v1/payments/{id}:
+    put:
+      tags: [Payment]
+      summary: Update a payment
+      operationId: putDashboardV1PaymentsId
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePaymentRequest"
+      responses:
+        "200":
+          description: Updated payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    delete:
+      tags: [Payment]
+      summary: Delete a payment
+      operationId: deleteDashboardV1PaymentsId
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Payment deleted
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /dashboard/v1/payments/{id}/review:
+    put:
+      tags: [Payment]
+      summary: Review payment (update status)
+      operationId: putDashboardV1PaymentsIdReview
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewPaymentRequest"
+      responses:
+        "200":
+          description: Status updated
+        "400":
+          $ref: "#/components/responses/BadRequestError"
         "401":
           $ref: "#/components/responses/UnauthorizedError"

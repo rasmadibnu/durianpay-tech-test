@@ -29,6 +29,13 @@ type CreateMerchantRequest struct {
 	Name string `json:"name"`
 }
 
+// CreatePaymentRequest defines model for CreatePaymentRequest.
+type CreatePaymentRequest struct {
+	Amount     string `json:"amount"`
+	MerchantId int    `json:"merchant_id"`
+	Status     string `json:"status"`
+}
+
 // Error defines model for Error.
 type Error struct {
 	Code    int    `json:"code"`
@@ -43,18 +50,39 @@ type Merchant struct {
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 }
 
+// PaginationMeta defines model for PaginationMeta.
+type PaginationMeta struct {
+	Limit      int `json:"limit"`
+	Page       int `json:"page"`
+	Total      int `json:"total"`
+	TotalPages int `json:"total_pages"`
+}
+
 // Payment defines model for Payment.
 type Payment struct {
-	Amount    *string    `json:"amount,omitempty"`
-	CreatedAt *time.Time `json:"created_at,omitempty"`
-	Id        *string    `json:"id,omitempty"`
-	Merchant  *string    `json:"merchant,omitempty"`
-	Status    *string    `json:"status,omitempty"`
+	Amount       *string    `json:"amount,omitempty"`
+	CreatedAt    *time.Time `json:"created_at,omitempty"`
+	Id           *string    `json:"id,omitempty"`
+	MerchantId   *int       `json:"merchant_id,omitempty"`
+	MerchantName *string    `json:"merchant_name,omitempty"`
+	Status       *string    `json:"status,omitempty"`
+}
+
+// ReviewPaymentRequest defines model for ReviewPaymentRequest.
+type ReviewPaymentRequest struct {
+	Status string `json:"status"`
 }
 
 // UpdateMerchantRequest defines model for UpdateMerchantRequest.
 type UpdateMerchantRequest struct {
 	Name string `json:"name"`
+}
+
+// UpdatePaymentRequest defines model for UpdatePaymentRequest.
+type UpdatePaymentRequest struct {
+	Amount     string `json:"amount"`
+	MerchantId int    `json:"merchant_id"`
+	Status     string `json:"status"`
 }
 
 // User defines model for User.
@@ -64,15 +92,34 @@ type User struct {
 	Token *string `json:"token,omitempty"`
 }
 
+// Limit defines model for limit.
+type Limit = int
+
+// Page defines model for page.
+type Page = int
+
+// Search defines model for search.
+type Search = string
+
 // Sort defines model for sort.
 type Sort = string
+
+// BadRequestError defines model for BadRequestError.
+type BadRequestError = Error
+
+// InternalServerError defines model for InternalServerError.
+type InternalServerError = Error
 
 // LoginResponse defines model for LoginResponse.
 type LoginResponse = User
 
 // MerchantListResponse defines model for MerchantListResponse.
 type MerchantListResponse struct {
-	Merchants *[]Merchant `json:"merchants,omitempty"`
+	Limit      int        `json:"limit"`
+	Merchants  []Merchant `json:"merchants"`
+	Page       int        `json:"page"`
+	Total      int        `json:"total"`
+	TotalPages int        `json:"total_pages"`
 }
 
 // PaymentListResponse defines model for PaymentListResponse.
@@ -89,12 +136,33 @@ type PostDashboardV1AuthLoginJSONBody struct {
 	Password string `json:"password"`
 }
 
+// GetDashboardV1MerchantsParams defines parameters for GetDashboardV1Merchants.
+type GetDashboardV1MerchantsParams struct {
+	// Search Free-text search term for list filtering
+	Search *Search `form:"search,omitempty" json:"search,omitempty"`
+
+	// Page Page number (1-based)
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// Limit Number of items per page (max 100)
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // GetDashboardV1PaymentsParams defines parameters for GetDashboardV1Payments.
 type GetDashboardV1PaymentsParams struct {
+	// Search Free-text search term for list filtering
+	Search *Search `form:"search,omitempty" json:"search,omitempty"`
+
 	// Sort Comma-separated sort fields. Common patterns: `-created_at` (prefix `-` = desc) `amount` (no prefix `-` = asc)
 	Sort *Sort `form:"sort,omitempty" json:"sort,omitempty"`
 
-	// Status status of payment (completed , processing , or failed)
+	// Page Page number (1-based)
+	Page *Page `form:"page,omitempty" json:"page,omitempty"`
+
+	// Limit Number of items per page (max 100)
+	Limit *Limit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Status status of payment (completed, processing, or failed)
 	Status *string `form:"status,omitempty" json:"status,omitempty"`
 
 	// Id payment id
@@ -110,6 +178,15 @@ type PostDashboardV1MerchantsJSONRequestBody = CreateMerchantRequest
 // PutDashboardV1MerchantsIdJSONRequestBody defines body for PutDashboardV1MerchantsId for application/json ContentType.
 type PutDashboardV1MerchantsIdJSONRequestBody = UpdateMerchantRequest
 
+// PostDashboardV1PaymentsJSONRequestBody defines body for PostDashboardV1Payments for application/json ContentType.
+type PostDashboardV1PaymentsJSONRequestBody = CreatePaymentRequest
+
+// PutDashboardV1PaymentsIdJSONRequestBody defines body for PutDashboardV1PaymentsId for application/json ContentType.
+type PutDashboardV1PaymentsIdJSONRequestBody = UpdatePaymentRequest
+
+// PutDashboardV1PaymentsIdReviewJSONRequestBody defines body for PutDashboardV1PaymentsIdReview for application/json ContentType.
+type PutDashboardV1PaymentsIdReviewJSONRequestBody = ReviewPaymentRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Login with email + password
@@ -117,7 +194,7 @@ type ServerInterface interface {
 	PostDashboardV1AuthLogin(w http.ResponseWriter, r *http.Request)
 	// List merchants
 	// (GET /dashboard/v1/merchants)
-	GetDashboardV1Merchants(w http.ResponseWriter, r *http.Request)
+	GetDashboardV1Merchants(w http.ResponseWriter, r *http.Request, params GetDashboardV1MerchantsParams)
 	// Create a merchant
 	// (POST /dashboard/v1/merchants)
 	PostDashboardV1Merchants(w http.ResponseWriter, r *http.Request)
@@ -130,9 +207,21 @@ type ServerInterface interface {
 	// Update a merchant
 	// (PUT /dashboard/v1/merchants/{id})
 	PutDashboardV1MerchantsId(w http.ResponseWriter, r *http.Request, id int)
-	// List of payments
+	// List payments
 	// (GET /dashboard/v1/payments)
 	GetDashboardV1Payments(w http.ResponseWriter, r *http.Request, params GetDashboardV1PaymentsParams)
+	// Create a payment
+	// (POST /dashboard/v1/payments)
+	PostDashboardV1Payments(w http.ResponseWriter, r *http.Request)
+	// Delete a payment
+	// (DELETE /dashboard/v1/payments/{id})
+	DeleteDashboardV1PaymentsId(w http.ResponseWriter, r *http.Request, id string)
+	// Update a payment
+	// (PUT /dashboard/v1/payments/{id})
+	PutDashboardV1PaymentsId(w http.ResponseWriter, r *http.Request, id string)
+	// Review payment (update status)
+	// (PUT /dashboard/v1/payments/{id}/review)
+	PutDashboardV1PaymentsIdReview(w http.ResponseWriter, r *http.Request, id string)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -147,7 +236,7 @@ func (_ Unimplemented) PostDashboardV1AuthLogin(w http.ResponseWriter, r *http.R
 
 // List merchants
 // (GET /dashboard/v1/merchants)
-func (_ Unimplemented) GetDashboardV1Merchants(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) GetDashboardV1Merchants(w http.ResponseWriter, r *http.Request, params GetDashboardV1MerchantsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -175,9 +264,33 @@ func (_ Unimplemented) PutDashboardV1MerchantsId(w http.ResponseWriter, r *http.
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// List of payments
+// List payments
 // (GET /dashboard/v1/payments)
 func (_ Unimplemented) GetDashboardV1Payments(w http.ResponseWriter, r *http.Request, params GetDashboardV1PaymentsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create a payment
+// (POST /dashboard/v1/payments)
+func (_ Unimplemented) PostDashboardV1Payments(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete a payment
+// (DELETE /dashboard/v1/payments/{id})
+func (_ Unimplemented) DeleteDashboardV1PaymentsId(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update a payment
+// (PUT /dashboard/v1/payments/{id})
+func (_ Unimplemented) PutDashboardV1PaymentsId(w http.ResponseWriter, r *http.Request, id string) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Review payment (update status)
+// (PUT /dashboard/v1/payments/{id}/review)
+func (_ Unimplemented) PutDashboardV1PaymentsIdReview(w http.ResponseWriter, r *http.Request, id string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -207,14 +320,43 @@ func (siw *ServerInterfaceWrapper) PostDashboardV1AuthLogin(w http.ResponseWrite
 // GetDashboardV1Merchants operation middleware
 func (siw *ServerInterfaceWrapper) GetDashboardV1Merchants(w http.ResponseWriter, r *http.Request) {
 
+	var err error
+
 	ctx := r.Context()
 
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	r = r.WithContext(ctx)
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetDashboardV1MerchantsParams
+
+	// ------------- Optional query parameter "search" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "search", r.URL.Query(), &params.Search, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDashboardV1Merchants(w, r)
+		siw.Handler.GetDashboardV1Merchants(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -351,11 +493,35 @@ func (siw *ServerInterfaceWrapper) GetDashboardV1Payments(w http.ResponseWriter,
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetDashboardV1PaymentsParams
 
+	// ------------- Optional query parameter "search" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "search", r.URL.Query(), &params.Search, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "sort" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "sort", r.URL.Query(), &params.Sort, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "page", r.URL.Query(), &params.Page, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
 		return
 	}
 
@@ -377,6 +543,119 @@ func (siw *ServerInterfaceWrapper) GetDashboardV1Payments(w http.ResponseWriter,
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDashboardV1Payments(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostDashboardV1Payments operation middleware
+func (siw *ServerInterfaceWrapper) PostDashboardV1Payments(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostDashboardV1Payments(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteDashboardV1PaymentsId operation middleware
+func (siw *ServerInterfaceWrapper) DeleteDashboardV1PaymentsId(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteDashboardV1PaymentsId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutDashboardV1PaymentsId operation middleware
+func (siw *ServerInterfaceWrapper) PutDashboardV1PaymentsId(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutDashboardV1PaymentsId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutDashboardV1PaymentsIdReview operation middleware
+func (siw *ServerInterfaceWrapper) PutDashboardV1PaymentsIdReview(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutDashboardV1PaymentsIdReview(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -520,6 +799,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/dashboard/v1/payments", wrapper.GetDashboardV1Payments)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/dashboard/v1/payments", wrapper.PostDashboardV1Payments)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/dashboard/v1/payments/{id}", wrapper.DeleteDashboardV1PaymentsId)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/dashboard/v1/payments/{id}", wrapper.PutDashboardV1PaymentsId)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/dashboard/v1/payments/{id}/review", wrapper.PutDashboardV1PaymentsIdReview)
+	})
 
 	return r
 }
@@ -527,27 +818,35 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"AAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

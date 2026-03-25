@@ -2,7 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/durianpay/fullstack-boilerplate/internal/api"
@@ -74,6 +76,14 @@ func initDB(db *sql.DB) error {
 		  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);`,
+		`CREATE TABLE IF NOT EXISTS payments (
+		  id TEXT PRIMARY KEY,
+		  merchant_id INTEGER NOT NULL,
+		  amount TEXT NOT NULL,
+		  status TEXT NOT NULL CHECK(status IN ('completed', 'processing', 'failed')),
+		  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		  FOREIGN KEY (merchant_id) REFERENCES merchants(id)
+		);`,
 	}
 	for _, s := range stmts {
 		if _, err := db.Exec(s); err != nil {
@@ -99,13 +109,14 @@ func initDB(db *sql.DB) error {
 		}
 	}
 
-	var merchantCnt int
-	row = db.QueryRow("SELECT COUNT(1) FROM merchants")
-	if err := row.Scan(&merchantCnt); err != nil {
+	// Seed payments
+	var payCnt int
+	if err := db.QueryRow("SELECT COUNT(1) FROM payments").Scan(&payCnt); err != nil {
 		return err
 	}
-	if merchantCnt == 0 {
-		if err := seedMerchants(db); err != nil {
+
+	if payCnt == 0 {
+		if err := seedMerchantsAndPayments(db); err != nil {
 			return err
 		}
 	}
@@ -115,15 +126,40 @@ func initDB(db *sql.DB) error {
 	return nil
 }
 
-func seedMerchants(db *sql.DB) error {
+func seedMerchantsAndPayments(db *sql.DB) error {
 	merchantNames := []string{
 		"Tokopedia", "Shopee", "Bukalapak", "Lazada", "Blibli",
 		"Grab", "Gojek", "Traveloka", "Tiket.com", "JD.ID",
 		"Zalora", "Sociolla", "Bhinneka", "MatahariMall", "Orami",
 	}
 
-	for _, name := range merchantNames {
-		_, err := db.Exec("INSERT INTO merchants(name) VALUES (?)", name)
+	merchantIDs := make([]int64, len(merchantNames))
+	for i, name := range merchantNames {
+		res, err := db.Exec("INSERT INTO merchants(name) VALUES (?)", name)
+		if err != nil {
+			return err
+		}
+		merchantIDs[i], err = res.LastInsertId()
+		if err != nil {
+			return err
+		}
+	}
+
+	statuses := []string{"completed", "processing", "failed"}
+	rng := rand.New(rand.NewSource(42))
+	baseTime := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	for i := 1; i <= 50; i++ {
+		id := fmt.Sprintf("PAY-%04d", i)
+		merchantID := merchantIDs[rng.Intn(len(merchantIDs))]
+		status := statuses[rng.Intn(len(statuses))]
+		amount := fmt.Sprintf("%.2f", 10000+rng.Float64()*990000)
+		createdAt := baseTime.Add(time.Duration(rng.Intn(365*24)) * time.Hour)
+
+		_, err := db.Exec(
+			"INSERT INTO payments(id, merchant_id, amount, status, created_at) VALUES (?, ?, ?, ?, ?)",
+			id, merchantID, amount, status, createdAt,
+		)
 		if err != nil {
 			return err
 		}

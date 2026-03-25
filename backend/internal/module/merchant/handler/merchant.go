@@ -25,10 +25,6 @@ type createMerchantRequest struct {
 	Name string `json:"name"`
 }
 
-type merchantListResponse struct {
-	Merchants []entity.Merchant `json:"merchants"`
-}
-
 func (h *MerchantHandler) CreateMerchant(w http.ResponseWriter, r *http.Request) {
 	var req createMerchantRequest
 	if !decodeJSONBody(w, r, &req) {
@@ -61,7 +57,12 @@ func (h *MerchantHandler) GetMerchants(w http.ResponseWriter, r *http.Request) {
 		limit = 100
 	}
 
-	result, err := h.merchantUC.GetAll(page, limit)
+	var search *string
+	if s := r.URL.Query().Get("search"); s != "" {
+		search = &s
+	}
+
+	result, err := h.merchantUC.GetAll(search, page, limit)
 	if err != nil {
 		transport.WriteError(w, err)
 		return

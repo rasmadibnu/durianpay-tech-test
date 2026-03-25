@@ -8,7 +8,7 @@ import (
 
 type MerchantRepository interface {
 	Create(name string) (*entity.Merchant, error)
-	GetAll(page, limit int) ([]entity.Merchant, int, error)
+	GetAll(search *string, page, limit int) ([]entity.Merchant, int, error)
 	GetByID(id int) (*entity.Merchant, error)
 	Update(id int, name string) (*entity.Merchant, error)
 	Delete(id int) error
@@ -34,14 +34,21 @@ func (r *Merchant) Create(name string) (*entity.Merchant, error) {
 	return r.GetByID(int(id))
 }
 
-func (r *Merchant) GetAll(page, limit int) ([]entity.Merchant, int, error) {
+func (r *Merchant) GetAll(search *string, page, limit int) ([]entity.Merchant, int, error) {
+	whereClause := ""
+	var args []interface{}
+	if search != nil && *search != "" {
+		whereClause = " WHERE name LIKE ?"
+		args = append(args, "%"+*search+"%")
+	}
+
 	var total int
-	if err := r.db.QueryRow("SELECT COUNT(*) FROM merchants").Scan(&total); err != nil {
+	if err := r.db.QueryRow("SELECT COUNT(*) FROM merchants"+whereClause, args...).Scan(&total); err != nil {
 		return nil, 0, entity.WrapError(err, entity.ErrorCodeInternal, "failed to count merchants")
 	}
 
 	offset := (page - 1) * limit
-	rows, err := r.db.Query("SELECT id, name, created_at, updated_at FROM merchants ORDER BY created_at DESC LIMIT ? OFFSET ?", limit, offset)
+	rows, err := r.db.Query("SELECT id, name, created_at, updated_at FROM merchants"+whereClause+" ORDER BY created_at DESC LIMIT ? OFFSET ?", append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, entity.WrapError(err, entity.ErrorCodeInternal, "failed to query merchants")
 	}
