@@ -16,8 +16,16 @@ type ErrorResponse struct {
 
 func CodeToStatus(code entity.Code) int {
 	switch code {
+
 	case entity.ErrorCodeBadRequest:
 		return http.StatusBadRequest
+
+	case entity.ErrorCodeUnauthorized:
+		return http.StatusUnauthorized
+
+	case entity.ErrorCodeInternal:
+		return http.StatusInternalServerError
+
 	default:
 		return http.StatusInternalServerError
 	}

@@ -24,10 +24,23 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// CreateMerchantRequest defines model for CreateMerchantRequest.
+type CreateMerchantRequest struct {
+	Name string `json:"name"`
+}
+
 // Error defines model for Error.
 type Error struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+}
+
+// Merchant defines model for Merchant.
+type Merchant struct {
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+	Id        *int       `json:"id,omitempty"`
+	Name      *string    `json:"name,omitempty"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 }
 
 // Payment defines model for Payment.
@@ -37,6 +50,11 @@ type Payment struct {
 	Id        *string    `json:"id,omitempty"`
 	Merchant  *string    `json:"merchant,omitempty"`
 	Status    *string    `json:"status,omitempty"`
+}
+
+// UpdateMerchantRequest defines model for UpdateMerchantRequest.
+type UpdateMerchantRequest struct {
+	Name string `json:"name"`
 }
 
 // User defines model for User.
@@ -51,6 +69,11 @@ type Sort = string
 
 // LoginResponse defines model for LoginResponse.
 type LoginResponse = User
+
+// MerchantListResponse defines model for MerchantListResponse.
+type MerchantListResponse struct {
+	Merchants *[]Merchant `json:"merchants,omitempty"`
+}
 
 // PaymentListResponse defines model for PaymentListResponse.
 type PaymentListResponse struct {
@@ -81,11 +104,32 @@ type GetDashboardV1PaymentsParams struct {
 // PostDashboardV1AuthLoginJSONRequestBody defines body for PostDashboardV1AuthLogin for application/json ContentType.
 type PostDashboardV1AuthLoginJSONRequestBody PostDashboardV1AuthLoginJSONBody
 
+// PostDashboardV1MerchantsJSONRequestBody defines body for PostDashboardV1Merchants for application/json ContentType.
+type PostDashboardV1MerchantsJSONRequestBody = CreateMerchantRequest
+
+// PutDashboardV1MerchantsIdJSONRequestBody defines body for PutDashboardV1MerchantsId for application/json ContentType.
+type PutDashboardV1MerchantsIdJSONRequestBody = UpdateMerchantRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Login with email + password
 	// (POST /dashboard/v1/auth/login)
 	PostDashboardV1AuthLogin(w http.ResponseWriter, r *http.Request)
+	// List merchants
+	// (GET /dashboard/v1/merchants)
+	GetDashboardV1Merchants(w http.ResponseWriter, r *http.Request)
+	// Create a merchant
+	// (POST /dashboard/v1/merchants)
+	PostDashboardV1Merchants(w http.ResponseWriter, r *http.Request)
+	// Delete a merchant
+	// (DELETE /dashboard/v1/merchants/{id})
+	DeleteDashboardV1MerchantsId(w http.ResponseWriter, r *http.Request, id int)
+	// Get a merchant
+	// (GET /dashboard/v1/merchants/{id})
+	GetDashboardV1MerchantsId(w http.ResponseWriter, r *http.Request, id int)
+	// Update a merchant
+	// (PUT /dashboard/v1/merchants/{id})
+	PutDashboardV1MerchantsId(w http.ResponseWriter, r *http.Request, id int)
 	// List of payments
 	// (GET /dashboard/v1/payments)
 	GetDashboardV1Payments(w http.ResponseWriter, r *http.Request, params GetDashboardV1PaymentsParams)
@@ -98,6 +142,36 @@ type Unimplemented struct{}
 // Login with email + password
 // (POST /dashboard/v1/auth/login)
 func (_ Unimplemented) PostDashboardV1AuthLogin(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// List merchants
+// (GET /dashboard/v1/merchants)
+func (_ Unimplemented) GetDashboardV1Merchants(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create a merchant
+// (POST /dashboard/v1/merchants)
+func (_ Unimplemented) PostDashboardV1Merchants(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete a merchant
+// (DELETE /dashboard/v1/merchants/{id})
+func (_ Unimplemented) DeleteDashboardV1MerchantsId(w http.ResponseWriter, r *http.Request, id int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get a merchant
+// (GET /dashboard/v1/merchants/{id})
+func (_ Unimplemented) GetDashboardV1MerchantsId(w http.ResponseWriter, r *http.Request, id int) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update a merchant
+// (PUT /dashboard/v1/merchants/{id})
+func (_ Unimplemented) PutDashboardV1MerchantsId(w http.ResponseWriter, r *http.Request, id int) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -121,6 +195,139 @@ func (siw *ServerInterfaceWrapper) PostDashboardV1AuthLogin(w http.ResponseWrite
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostDashboardV1AuthLogin(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDashboardV1Merchants operation middleware
+func (siw *ServerInterfaceWrapper) GetDashboardV1Merchants(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDashboardV1Merchants(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PostDashboardV1Merchants operation middleware
+func (siw *ServerInterfaceWrapper) PostDashboardV1Merchants(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostDashboardV1Merchants(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteDashboardV1MerchantsId operation middleware
+func (siw *ServerInterfaceWrapper) DeleteDashboardV1MerchantsId(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteDashboardV1MerchantsId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetDashboardV1MerchantsId operation middleware
+func (siw *ServerInterfaceWrapper) GetDashboardV1MerchantsId(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDashboardV1MerchantsId(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutDashboardV1MerchantsId operation middleware
+func (siw *ServerInterfaceWrapper) PutDashboardV1MerchantsId(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutDashboardV1MerchantsId(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -296,6 +503,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/dashboard/v1/auth/login", wrapper.PostDashboardV1AuthLogin)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/dashboard/v1/merchants", wrapper.GetDashboardV1Merchants)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/dashboard/v1/merchants", wrapper.PostDashboardV1Merchants)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/dashboard/v1/merchants/{id}", wrapper.DeleteDashboardV1MerchantsId)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/dashboard/v1/merchants/{id}", wrapper.GetDashboardV1MerchantsId)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/dashboard/v1/merchants/{id}", wrapper.PutDashboardV1MerchantsId)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/dashboard/v1/payments", wrapper.GetDashboardV1Payments)
 	})
 
@@ -305,22 +527,27 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/6RW227bRhD9lcW0DzFKi1KTh4BAgbq3IIUDGG3dPrhGteaOpE25l8wunaiG/r2YXUoi",
-	"TQo2kieJ3LmcM2dmuA9QO+OdRRsDVA/gJUmDESk9BUeRfxWGmrSP2lmo4EdnjDwPyLYRlWArsdLYqDAT",
-	"fOis8DJGJBsqsTyvCdnuHxmX4oUnXOlPYnm+FN8JjnsmltK41vKhdWJwLkN99reFAjTn/dAibaEAKw1C",
-	"lcEVEOoNGsko8ZM0vuGjXkooIG59so+k7Rp2u10BhME7GzCxvHRrbX/r3vCL2tmINjGX3je6lsy8fB+Y",
-	"/kMv49eEK6jgq/JYxDKfhvI6IOVkw+oRxpasiO5ftEJaJdqAJLRdOTIpD+wKuJJbgzZe6hA/C5gn55Gi",
-	"xk7UFC391xFNeAp7l56RdMWTRHILu+MLd/ce6zhFsHMWDJ4jXFvZxo0j/R+qn4kcPYNJJ2UC2iZ/tJGN",
-	"UCWirTGStlDBOx2CtmvhuIT3stEqVxYKuJdN21VNIVSv5osCDIYg14z/ehi1EuZUpETxeZpnehM1uTjm",
-	"0s6KldQNKk61z1oTKjaQTYBjvsT/ULOhqJlVr+sTwU4dbSOuuf96lPsD8nz24/Hh6fnQamIpbjKMY5bb",
-	"UYMcmnlMIc/9EJlsdI3fd8+z2pkxggJ64109QJ4cqEDJiOdRG5zy0WqYaDFlZJDqjXyM6V33VlxM+YQo",
-	"YxuGHtwbDfJyLIQnV2OubsH1zeJPFnZUurRERnVDI3XDf0ZYyDU4eZDFHJ9MDHQBAeuWdNz+zk2YU96h",
-	"JCRu4+PTL/u6//rXH/tFzJHy6ZHgJkafh4K3XAKhYy7s9o27lHZ94b24uHrLQ4sU8sgsZvPZnKE7j1Z6",
-	"DRW8nM1nL6EAL+MmoSqVDJs7J0mV94uSW7pseJmnkrmQZOTCpal7q3g5uRB/2jv9uWBCaf1D7moM8Qen",
-	"tl+wa09r42UIHx2paRX6M5Vj9DxuJ9fu0SVSi4+/at/O56fW1cGuHH76dgW8mi+e9hpv9NQ1h6WcooqP",
-	"Om5EoiK+EQcqbDmUrf91WuOEZm+wL9nV3rwYXFZupkEfTcp0X9gVj28zeXyFW4kOiHjx9PSenbqT5F3Q",
-	"/16MpH4MYJ9WqxNB08HpgLefI/zUBeML5e+WRpKivy5ubhlirzt0iL1yh+4Di3S/F7KlplsbVVk2rpbN",
-	"xoVYvZ6/nsPudvd/AAAA//+YrKvUtAoAAA==",
+	"H4sIAAAAAAAC/7xYXW/bNhf+KwTf96LFFMtee1EIGLCs3YoOLVB0y3aRGQsjHtvsJJIhqbSe4f8+HFKf",
+	"Fl07buorwyJ5znme80luaK5KrSRIZ2m2oZoZVoID4/9ZZRz+crC5EdoJJWlGX6qyZBcWcK8DTnAXWQgo",
+	"uJ0QXFSSaOYcGGkzcnORG8B9fzN3Q55oAwvxmdxc3JAfCMp9Sm5YqSqJi1KRwTqz+dO/JE2oQL13FZg1",
+	"TahkJdAsGJdQm6+gZGglfGalLnCpp5Im1K213++MkEu63W4TasBqJS14lG/VUsgP9Rf8kCvpQHrkTOtC",
+	"5AyRpx8twt/0NP7fwIJm9H9pR2IaVm16ZcEEZUP2DLjKSOLUPyAJk5xUFgwRcqFM6fXQbULfgclXTLq3",
+	"wrqTLNNGaTBOBIRlLc7/EQ5Ke8j6xgA0puaPGcPWdNt9ULcfIXcxjM1pgvajiPdsXcKjwdFB2vFoavWn",
+	"gakPt1iuJKvcShnxL/CfjVHmCCR1aHpDK38epMNNwD3QqiyZWSNzwlohl0RhSNyzQvAQKTSh96yoatY4",
+	"0Oz5dJbQEqxlS7T/aig1I+U+SR7icTEc4EU4uex0CSXJgokCOKpqtOYGOG5ghaWdPo//pc/NJkQ+wF0F",
+	"1o2dHLJ8M8peTN67Shhk7jrsmo+8mNDWM0OpgbterfA01qeFdLDErO0R2y8rx3OcHDDbm9FpiQFoM3CM",
+	"oStu2YaGukEzypmDCydKGGtPqOA9Lns497Cc0ErzByrZRkA0iTfCEEr+kF5WiBx+rP9PclXGgJwOvlM0",
+	"i20qe3x3W9tKdhk7Yx1zlR2ewDQqAPtiQrRROYQQSTBIQp4cR92Vd8C3ThPfpUZCoWSiiIaFUUU8XkLc",
+	"Rw3ZrbAJtZBXRrj1b1gVgspbYAYM1pXu3y+Nd3/98/em06OksNrRuHJOhyqFbdQbIVxw3/q1esvk8lJr",
+	"cvn+DVZRMDbUsNlkOpmi6UqDZFrQjD6bTCfPaEI1cytvVcqZXd0qZnh6P0sx+9MCpwVPmQr+QOJ8GXzD",
+	"sVso6141h/6YISA/X9DgELDuJ8XXX9H89vtGM2s/KcMPh0OQ0Tsxj/bB7ogzFeyOTd9Pp/v6R7svHc5W",
+	"24Q+n84Onxq3WB81bZf0Uskn4VbEQyHfkRZKQh1bWkTpg2mOJ4duHExDS4g48TX0ffiu3X8KA9FR7iuJ",
+	"qNOHZtfDxLmeb+cDnoR1pOyZ31DTNpc5xs0xgTwk4bRA/tKoEZ8KjgrD2aMZ0U2945EnGMhbOs/lw6CX",
+	"sE5x1I37ozzdCL4NtzjsS2NPv/LfY75+w32R6K6E15twFcMC2d3EBKe7XupPmLtTB+LbceHz8S2z7bzB",
+	"bH4uvgMbB/lOHlQ5zkbk9Cy50PONw05yJte8BneEX3QVq2bV2f3y+DUyPhIe36q/eVwEA89fI4Peh9fI",
+	"/kPCEen8vtk+ipkYum5L6p+qtsluiQvXB6IWpDaEPDl8e3i67zks3EUicdkNgbsGNGp9fMeE+oX9Auen",
+	"DESxt6BzzkMd3bZ+CwFz3ziyMkV9ocjStFA5K1bKuuzF9MWUoqw6qjZffg8BybUSIVJqJr1BYw+0lbRk",
+	"ki3BX5bbM71HuM2eR6nYsfa1a779LwAA//+886YQ3xUAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -9,8 +9,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/durianpay/fullstack-boilerplate/internal/entity"
+	"github.com/durianpay/fullstack-boilerplate/internal/middleware"
 	"github.com/durianpay/fullstack-boilerplate/internal/openapigen"
+	"github.com/durianpay/fullstack-boilerplate/internal/transport"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
+	chimw "github.com/go-chi/chi/v5/middleware"
 	oapinethttpmw "github.com/oapi-codegen/nethttp-middleware"
 )
 
@@ -31,11 +36,21 @@ func NewServer(apiHandler openapigen.ServerInterface, openapiYamlPath string) *S
 	}
 
 	r := chi.NewRouter()
+	r.Use(chimw.Logger)
+	r.Use(chimw.Recoverer)
+	r.Use(corsMiddleware)
 
 	r.Route("/", func(api chi.Router) {
 		api.Use(oapinethttpmw.OapiRequestValidatorWithOptions(
 			swagger,
 			&oapinethttpmw.Options{
+				Options: openapi3filter.Options{
+					AuthenticationFunc: middleware.JWTAuth,
+				},
+				ErrorHandler: func(w http.ResponseWriter, message string, statusCode int) {
+
+					transport.WriteAppError(w, entity.ErrorUnauthorized("missing auth header"))
+				},
 				DoNotValidateServers:  true,
 				SilenceServersWarning: true,
 			},
@@ -84,4 +99,20 @@ func (s *Server) Start(addr string) {
 
 func (s *Server) Routes() http.Handler {
 	return s.router
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Max-Age", "86400")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
