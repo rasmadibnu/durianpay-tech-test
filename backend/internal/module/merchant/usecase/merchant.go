@@ -7,7 +7,7 @@ import (
 
 type MerchantUsecase interface {
 	Create(name string) (*entity.Merchant, error)
-	GetAll() ([]entity.Merchant, error)
+	GetAll(page, limit int) (entity.PaginatedResult[entity.Merchant], error)
 	GetByID(id int) (*entity.Merchant, error)
 	Update(id int, name string) (*entity.Merchant, error)
 	Delete(id int) error
@@ -28,8 +28,12 @@ func (u *MerchantUC) Create(name string) (*entity.Merchant, error) {
 	return u.repo.Create(name)
 }
 
-func (u *MerchantUC) GetAll() ([]entity.Merchant, error) {
-	return u.repo.GetAll()
+func (u *MerchantUC) GetAll(page, limit int) (entity.PaginatedResult[entity.Merchant], error) {
+	merchants, total, err := u.repo.GetAll(page, limit)
+	if err != nil {
+		return entity.PaginatedResult[entity.Merchant]{}, err
+	}
+	return entity.NewPaginatedResult(merchants, page, limit, total), nil
 }
 
 func (u *MerchantUC) GetByID(id int) (*entity.Merchant, error) {

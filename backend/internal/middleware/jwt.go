@@ -13,6 +13,7 @@ import (
 type contextKey string
 
 const UserIDKey contextKey = "user_id"
+const UserRoleKey contextKey = "user_role"
 
 func JWTAuth(
 	ctx context.Context,
@@ -53,14 +54,14 @@ func JWTAuth(
 	}
 
 	sub, _ := claims["sub"].(string)
-
+	role, _ := claims["role"].(string)
 	// inject user ke context
 	newCtx := context.WithValue(
 		req.Context(),
 		UserIDKey,
 		sub,
 	)
-
+	newCtx = context.WithValue(req.Context(), UserRoleKey, role)
 	input.RequestValidationInput.Request =
 		req.WithContext(newCtx)
 

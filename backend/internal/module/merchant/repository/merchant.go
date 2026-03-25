@@ -8,7 +8,7 @@ import (
 
 type MerchantRepository interface {
 	Create(name string) (*entity.Merchant, error)
-	GetAll() ([]entity.Merchant, error)
+	GetAll(page, limit int) ([]entity.Merchant, int, error)
 	GetByID(id int) (*entity.Merchant, error)
 	Update(id int, name string) (*entity.Merchant, error)
 	Delete(id int) error
@@ -34,10 +34,16 @@ func (r *Merchant) Create(name string) (*entity.Merchant, error) {
 	return r.GetByID(int(id))
 }
 
-func (r *Merchant) GetAll() ([]entity.Merchant, error) {
-	rows, err := r.db.Query("SELECT id, name, created_at, updated_at FROM merchants ORDER BY created_at DESC")
+func (r *Merchant) GetAll(page, limit int) ([]entity.Merchant, int, error) {
+	var total int
+	if err := r.db.QueryRow("SELECT COUNT(*) FROM merchants").Scan(&total); err != nil {
+		return nil, 0, entity.WrapError(err, entity.ErrorCodeInternal, "failed to count merchants")
+	}
+
+	offset := (page - 1) * limit
+	rows, err := r.db.Query("SELECT id, name, created_at, updated_at FROM merchants ORDER BY created_at DESC LIMIT ? OFFSET ?", limit, offset)
 	if err != nil {
-		return nil, entity.WrapError(err, entity.ErrorCodeInternal, "failed to query merchants")
+		return nil, 0, entity.WrapError(err, entity.ErrorCodeInternal, "failed to query merchants")
 	}
 	defer rows.Close()
 
@@ -45,11 +51,11 @@ func (r *Merchant) GetAll() ([]entity.Merchant, error) {
 	for rows.Next() {
 		var m entity.Merchant
 		if err := rows.Scan(&m.ID, &m.Name, &m.CreatedAt, &m.UpdatedAt); err != nil {
-			return nil, entity.WrapError(err, entity.ErrorCodeInternal, "failed to scan merchant")
+			return nil, 0, entity.WrapError(err, entity.ErrorCodeInternal, "failed to scan merchant")
 		}
 		merchants = append(merchants, m)
 	}
-	return merchants, nil
+	return merchants, total, nil
 }
 
 func (r *Merchant) GetByID(id int) (*entity.Merchant, error) {

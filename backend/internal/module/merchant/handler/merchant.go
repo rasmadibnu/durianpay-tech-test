@@ -49,18 +49,33 @@ func (h *MerchantHandler) CreateMerchant(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *MerchantHandler) GetMerchants(w http.ResponseWriter, r *http.Request) {
-	merchants, err := h.merchantUC.GetAll()
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	result, err := h.merchantUC.GetAll(page, limit)
 	if err != nil {
 		transport.WriteError(w, err)
 		return
 	}
 
-	if merchants == nil {
-		merchants = []entity.Merchant{}
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(merchantListResponse{Merchants: merchants}); err != nil {
+	resp := map[string]any{
+		"merchants":   result.Data,
+		"page":        result.Page,
+		"limit":       result.Limit,
+		"total":       result.Total,
+		"total_pages": result.TotalPages,
+	}
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		transport.WriteAppError(w, entity.ErrorInternal("internal server error"))
 	}
 }
