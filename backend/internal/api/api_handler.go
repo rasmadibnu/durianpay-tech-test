@@ -6,6 +6,7 @@ import (
 	ah "github.com/durianpay/fullstack-boilerplate/internal/module/auth/handler"
 	mh "github.com/durianpay/fullstack-boilerplate/internal/module/merchant/handler"
 	ph "github.com/durianpay/fullstack-boilerplate/internal/module/payment/handler"
+	uh "github.com/durianpay/fullstack-boilerplate/internal/module/user/handler"
 	"github.com/durianpay/fullstack-boilerplate/internal/openapigen"
 )
 
@@ -13,6 +14,7 @@ type APIHandler struct {
 	Auth     *ah.AuthHandler
 	Payment  *ph.PaymentHandler
 	Merchant *mh.MerchantHandler
+	User     *uh.UserHandler
 }
 
 var _ openapigen.ServerInterface = (*APIHandler)(nil)
@@ -61,4 +63,29 @@ func (h *APIHandler) DeleteDashboardV1PaymentsId(w http.ResponseWriter, r *http.
 
 func (h *APIHandler) PutDashboardV1PaymentsIdReview(w http.ResponseWriter, r *http.Request, id string) {
 	h.Payment.UpdatePaymentStatus(w, r)
+}
+
+// Users
+func (h *APIHandler) GetDashboardV1Users(w http.ResponseWriter, r *http.Request, params openapigen.GetDashboardV1UsersParams) {
+	h.User.GetUsers(w, r)
+}
+
+func (h *APIHandler) PostDashboardV1Users(w http.ResponseWriter, r *http.Request) {
+	h.User.CreateUser(w, r)
+}
+
+func (h *APIHandler) GetDashboardV1UsersId(w http.ResponseWriter, r *http.Request, id int) {
+	h.User.GetUser(w, r)
+}
+
+func (h *APIHandler) PutDashboardV1UsersId(w http.ResponseWriter, r *http.Request, id int) {
+	h.User.UpdateUser(w, r)
+}
+
+func (h *APIHandler) DeleteDashboardV1UsersId(w http.ResponseWriter, r *http.Request, id int) {
+	h.User.DeleteUser(w, r)
+}
+
+func (h *APIHandler) PatchDashboardV1UsersIdPassword(w http.ResponseWriter, r *http.Request, id int) {
+	h.User.UpdatePassword(w, r)
 }

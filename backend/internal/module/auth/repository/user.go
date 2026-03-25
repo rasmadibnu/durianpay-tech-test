@@ -14,7 +14,7 @@ type User struct {
 	db *sql.DB
 }
 
-func NewUserRepo(db *sql.DB) *User {
+func NewAuthRepo(db *sql.DB) *User {
 	return &User{db: db}
 }
 

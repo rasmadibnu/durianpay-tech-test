@@ -15,6 +15,12 @@ import (
 	mh "github.com/durianpay/fullstack-boilerplate/internal/module/merchant/handler"
 	mr "github.com/durianpay/fullstack-boilerplate/internal/module/merchant/repository"
 	mu "github.com/durianpay/fullstack-boilerplate/internal/module/merchant/usecase"
+	ph "github.com/durianpay/fullstack-boilerplate/internal/module/payment/handler"
+	pr "github.com/durianpay/fullstack-boilerplate/internal/module/payment/repository"
+	pu "github.com/durianpay/fullstack-boilerplate/internal/module/payment/usecase"
+	uh "github.com/durianpay/fullstack-boilerplate/internal/module/user/handler"
+	ur "github.com/durianpay/fullstack-boilerplate/internal/module/user/repository"
+	uu "github.com/durianpay/fullstack-boilerplate/internal/module/user/usecase"
 	srv "github.com/durianpay/fullstack-boilerplate/internal/service/http"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
@@ -40,18 +46,26 @@ func main() {
 		panic(err)
 	}
 
-	userRepo := ar.NewUserRepo(db)
+	authRepo := ar.NewAuthRepo(db)
 	merchantRepo := mr.NewMerchantRepo(db)
+	paymentRepo := pr.NewPaymentRepo(db)
+	userRepo := ur.NewUserRepo(db)
 
-	authUC := au.NewAuthUsecase(userRepo, config.JwtSecret, JwtExpiredDuration)
+	authUC := au.NewAuthUsecase(authRepo, config.JwtSecret, JwtExpiredDuration)
 	merchantUC := mu.NewMerchantUsecase(merchantRepo)
+	pamentUC := pu.NewPaymentUsecase(paymentRepo)
+	userUC := uu.NewUserUsecase(userRepo)
 
 	authH := ah.NewAuthHandler(authUC)
 	merchantH := mh.NewMerchantHandler(merchantUC)
+	paymentH := ph.NewPaymentHandler(pamentUC)
+	userH := uh.NewUserHandler(userUC)
 
 	apiHandler := &api.APIHandler{
 		Auth:     authH,
 		Merchant: merchantH,
+		Payment:  paymentH,
+		User:     userH,
 	}
 
 	server := srv.NewServer(apiHandler, config.OpenapiYamlLocation)

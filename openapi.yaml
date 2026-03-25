@@ -179,6 +179,43 @@ components:
         status:
           type: string
 
+    UserRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+
+    CreateUserRequest:
+      type: object
+      required: [email, password, role]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+
+    UpdateUserRequest:
+      type: object
+      required: [email, role]
+      properties:
+        email:
+          type: string
+        role:
+          type: string
+
+    UpdatePasswordRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+
   responses:
     LoginResponse:
       description: return token and user information
@@ -212,6 +249,21 @@ components:
                       $ref: "#/components/schemas/Merchant"
                 required:
                   - merchants
+    UserListResponse:
+      description: User List
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/PaginationMeta"
+              - type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserRecord"
+                required:
+                  - users
     UnauthorizedError:
       description: Authentication failed or missing credentials
       content:
@@ -494,6 +546,143 @@ paths:
       responses:
         "200":
           description: Status updated
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  # ── User ──────────────────────────────────────────────
+  /dashboard/v1/users:
+    get:
+      tags: [User]
+      summary: List users
+      operationId: getDashboardV1Users
+      parameters:
+        - $ref: "#/components/parameters/search"
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/limit"
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          $ref: "#/components/responses/UserListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    post:
+      tags: [User]
+      summary: Create a user
+      operationId: postDashboardV1Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRecord"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /dashboard/v1/users/{id}:
+    get:
+      tags: [User]
+      summary: Get a user
+      operationId: getDashboardV1UsersId
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRecord"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    put:
+      tags: [User]
+      summary: Update a user
+      operationId: putDashboardV1UsersId
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRecord"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+    delete:
+      tags: [User]
+      summary: Delete a user
+      operationId: deleteDashboardV1UsersId
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: User deleted
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /dashboard/v1/users/{id}/password:
+    patch:
+      tags: [User]
+      summary: Update user password
+      operationId: patchDashboardV1UsersIdPassword
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePasswordRequest"
+      responses:
+        "200":
+          description: Password updated
         "400":
           $ref: "#/components/responses/BadRequestError"
         "401":
