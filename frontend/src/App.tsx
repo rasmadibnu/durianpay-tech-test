@@ -7,6 +7,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { Toaster } from "sonner";
 import MerchantsPage from "./pages/MerchantsPage";
 import DashboardPage from "./pages/DashboardPage";
+import UsersPage from "./pages/UsersPage";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -39,6 +40,16 @@ export default function App() {
                 <ProtectedRoute>
                   <Navigation>
                     <MerchantsPage />
+                  </Navigation>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <Navigation>
+                    <UsersPage />
                   </Navigation>
                 </ProtectedRoute>
               }
