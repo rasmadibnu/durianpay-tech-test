@@ -358,7 +358,7 @@ export default function DashboardPage() {
             ))}
           </div>
           {isOperation && (
-            <Button size="sm" onClick={openCreate}>
+            <Button onClick={openCreate}>
               <Plus className="size-4" />
               Add Payment
             </Button>

@@ -126,7 +126,7 @@ export default function MerchantsPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-xl font-bold text-foreground">Merchants</h1>
         <div className="flex gap-3 items-center">
-          <Button size="sm" onClick={openCreate}>
+          <Button onClick={openCreate}>
             <Plus className="size-4" /> Add Merchant
           </Button>
           <Input
