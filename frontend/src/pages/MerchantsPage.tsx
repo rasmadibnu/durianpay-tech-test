@@ -48,14 +48,16 @@ export default function MerchantsPage() {
   const [editing, setEditing] = useState<Merchant | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Merchant | null>(null);
   const [name, setName] = useState("");
+  const [search, setSearch] = useState("");
 
   const {
     data,
     isLoading,
     error: queryError,
   } = useQuery({
-    queryKey: ["merchants", page],
-    queryFn: () => getMerchants({ page, limit: PAGE_SIZE }),
+    queryKey: ["merchants", search, page],
+    queryFn: () =>
+      getMerchants({ search: search || undefined, page, limit: PAGE_SIZE }),
   });
   const merchants: Merchant[] = data?.merchants ?? [];
   const totalCount = data?.total ?? 0;
@@ -123,9 +125,20 @@ export default function MerchantsPage() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-xl font-bold text-foreground">Merchants</h1>
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="size-4" /> Add Merchant
-        </Button>
+        <div className="flex gap-3 items-center">
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="size-4" /> Add Merchant
+          </Button>
+          <Input
+            placeholder="Search..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            className="w-48"
+          />
+        </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">

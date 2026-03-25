@@ -2,6 +2,7 @@ import api from "@/lib/api";
 import type { Merchant, MerchantListResponse } from "@/types/merchant";
 
 export async function getMerchants(params: {
+  search?: string;
   page?: number;
   limit?: number;
 }): Promise<MerchantListResponse> {
