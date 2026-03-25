@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Blocks, Loader2 } from "lucide-react";
 import { login as loginAPI } from "@/services/auth.service";
 import { useAuth } from "@/context/AuthContext";
 
@@ -23,7 +23,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const user = await loginAPI({ email, password });
-      login(user.token, user.email);
+      login(user.token, user.email, user.role);
       navigate("/", { replace: true });
     } catch (err: unknown) {
       const msg =
@@ -42,19 +42,10 @@ export default function LoginPage() {
       <div className="absolute -top-48 -right-24 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.12)_0%,transparent_70%)] pointer-events-none" />
       <div className="absolute -bottom-48 -left-24 w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.08)_0%,transparent_70%)] pointer-events-none" />
 
-      <Card className="relative w-full max-w-[420px] m-4 bg-card/50 backdrop-blur-2xl border-border">
+      <Card className="relative w-full max-w-[420px] m-4 p-4 bg-card/50 backdrop-blur-2xl border-border">
         <CardHeader className="text-center space-y-3 pb-2">
           <div className="inline-flex justify-center">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <rect width="32" height="32" rx="8" fill="hsl(217 91% 60%)" />
-              <path
-                d="M8 16L14 22L24 10"
-                stroke="white"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <Blocks className="text-primary size-10" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">

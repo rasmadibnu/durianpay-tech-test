@@ -9,7 +9,8 @@ import {
 interface AuthContextType {
   token: string | null;
   email: string | null;
-  login: (token: string, email: string) => void;
+  role: string | null;
+  login: (token: string, email: string, role: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -23,25 +24,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [email, setEmail] = useState<string | null>(() =>
     localStorage.getItem("email"),
   );
+  const [role, setRole] = useState<string | null>(() =>
+    localStorage.getItem("role"),
+  );
 
-  const login = (token: string, email: string) => {
+  const login = (token: string, email: string, role: string) => {
     localStorage.setItem("token", token);
     localStorage.setItem("email", email);
+    localStorage.setItem("role", role);
     setToken(token);
     setEmail(email);
+    setRole(role);
   };
 
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("email");
+    localStorage.removeItem("role");
     setToken(null);
     setEmail(null);
+    setRole(null);
   };
 
   useEffect(() => {
     const handleStorage = () => {
       setToken(localStorage.getItem("token"));
       setEmail(localStorage.getItem("email"));
+      setRole(localStorage.getItem("role"));
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
@@ -49,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ token, email, login, logout, isAuthenticated: !!token }}
+      value={{ token, email, role, login, logout, isAuthenticated: !!token }}
     >
       {children}
     </AuthContext.Provider>
