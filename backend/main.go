@@ -10,6 +10,9 @@ import (
 	ah "github.com/durianpay/fullstack-boilerplate/internal/module/auth/handler"
 	ar "github.com/durianpay/fullstack-boilerplate/internal/module/auth/repository"
 	au "github.com/durianpay/fullstack-boilerplate/internal/module/auth/usecase"
+	mh "github.com/durianpay/fullstack-boilerplate/internal/module/merchant/handler"
+	mr "github.com/durianpay/fullstack-boilerplate/internal/module/merchant/repository"
+	mu "github.com/durianpay/fullstack-boilerplate/internal/module/merchant/usecase"
 	srv "github.com/durianpay/fullstack-boilerplate/internal/service/http"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
@@ -36,13 +39,17 @@ func main() {
 	}
 
 	userRepo := ar.NewUserRepo(db)
+	merchantRepo := mr.NewMerchantRepo(db)
 
 	authUC := au.NewAuthUsecase(userRepo, config.JwtSecret, JwtExpiredDuration)
+	merchantUC := mu.NewMerchantUsecase(merchantRepo)
 
 	authH := ah.NewAuthHandler(authUC)
+	merchantH := mh.NewMerchantHandler(merchantUC)
 
 	apiHandler := &api.APIHandler{
-		Auth: authH,
+		Auth:     authH,
+		Merchant: merchantH,
 	}
 
 	server := srv.NewServer(apiHandler, config.OpenapiYamlLocation)
@@ -61,6 +68,12 @@ func initDB(db *sql.DB) error {
 		  password_hash TEXT NOT NULL,
 		  role TEXT NOT NULL
 		);`,
+		`CREATE TABLE IF NOT EXISTS merchants (
+		  id INTEGER PRIMARY KEY AUTOINCREMENT,
+		  name TEXT NOT NULL UNIQUE,
+		  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);`,
 	}
 	for _, s := range stmts {
 		if _, err := db.Exec(s); err != nil {
@@ -68,12 +81,12 @@ func initDB(db *sql.DB) error {
 		}
 	}
 	// seed admin user if not exists
-	var cnt int
+	var userCnt int
 	row := db.QueryRow("SELECT COUNT(1) FROM users")
-	if err := row.Scan(&cnt); err != nil {
+	if err := row.Scan(&userCnt); err != nil {
 		return err
 	}
-	if cnt == 0 {
+	if userCnt == 0 {
 		hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 		if err != nil {
 			return err
@@ -86,7 +99,35 @@ func initDB(db *sql.DB) error {
 		}
 	}
 
+	var merchantCnt int
+	row = db.QueryRow("SELECT COUNT(1) FROM merchants")
+	if err := row.Scan(&merchantCnt); err != nil {
+		return err
+	}
+	if merchantCnt == 0 {
+		if err := seedMerchants(db); err != nil {
+			return err
+		}
+	}
+
 	const dbLifetime = time.Minute * 5
 	db.SetConnMaxLifetime(dbLifetime)
+	return nil
+}
+
+func seedMerchants(db *sql.DB) error {
+	merchantNames := []string{
+		"Tokopedia", "Shopee", "Bukalapak", "Lazada", "Blibli",
+		"Grab", "Gojek", "Traveloka", "Tiket.com", "JD.ID",
+		"Zalora", "Sociolla", "Bhinneka", "MatahariMall", "Orami",
+	}
+
+	for _, name := range merchantNames {
+		_, err := db.Exec("INSERT INTO merchants(name) VALUES (?)", name)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
