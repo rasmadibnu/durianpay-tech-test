@@ -105,7 +105,53 @@ describe("DashboardPage", () => {
     mockToastSuccess.mockReset();
     mockToastError.mockReset();
 
-    mockGetPayments.mockResolvedValue(paymentsResponse);
+    mockGetPayments.mockImplementation(
+      (params?: { status?: string; limit?: number }) => {
+        if (params?.limit === 1) {
+          if (params.status === "completed") {
+            return Promise.resolve({
+              ...paymentsResponse,
+              payments: [],
+              total: 4,
+            });
+          }
+          if (params.status === "processing") {
+            return Promise.resolve({
+              ...paymentsResponse,
+              payments: [],
+              total: 7,
+            });
+          }
+          if (params.status === "failed") {
+            return Promise.resolve({
+              ...paymentsResponse,
+              payments: [],
+              total: 2,
+            });
+          }
+          return Promise.resolve({
+            ...paymentsResponse,
+            payments: [],
+            total: 13,
+          });
+        }
+
+        if (params?.status === "completed") {
+          return Promise.resolve({
+            ...paymentsResponse,
+            payments: [
+              {
+                ...paymentsResponse.payments[0],
+                id: "PAY-2",
+                status: "completed" as const,
+              },
+            ],
+          });
+        }
+
+        return Promise.resolve(paymentsResponse);
+      },
+    );
     mockGetMerchants.mockResolvedValue(merchantsResponse);
   });
 

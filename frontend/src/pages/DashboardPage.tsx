@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueries,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -48,7 +53,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import TablePagination from "@/components/TablePagination";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import {
   Plus,
   Eye,
@@ -84,16 +89,6 @@ function formatCurrency(amount: string) {
     currency: "IDR",
     minimumFractionDigits: 0,
   }).format(parseFloat(amount));
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 export default function DashboardPage() {
@@ -142,6 +137,30 @@ export default function DashboardPage() {
   const totalPages = data?.total_pages ?? 1;
   const currentPage = page;
 
+  const paymentSummaryQueries = useQueries({
+    queries: [
+      {
+        queryKey: ["payment-summary", "all"],
+        queryFn: () => getPayments({ page: 1, limit: 1 }),
+      },
+      {
+        queryKey: ["payment-summary", "completed"],
+        queryFn: () => getPayments({ status: "completed", page: 1, limit: 1 }),
+      },
+      {
+        queryKey: ["payment-summary", "processing"],
+        queryFn: () => getPayments({ status: "processing", page: 1, limit: 1 }),
+      },
+      {
+        queryKey: ["payment-summary", "failed"],
+        queryFn: () => getPayments({ status: "failed", page: 1, limit: 1 }),
+      },
+    ],
+  });
+
+  const [allSummary, completedSummary, processingSummary, failedSummary] =
+    paymentSummaryQueries;
+
   const createMut = useMutation({
     mutationFn: (d: { merchant_id: number; amount: string; status: string }) =>
       createPayment(d),
@@ -166,6 +185,7 @@ export default function DashboardPage() {
     }) => updatePayment(id, d),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["payment-summary"] });
       closeModal();
       toast.success("Payment updated successfully");
     },
@@ -178,6 +198,7 @@ export default function DashboardPage() {
       reviewPayment(id, status),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["payment-summary"] });
       closeReview();
       toast.success("Payment status updated");
     },
@@ -189,6 +210,7 @@ export default function DashboardPage() {
     mutationFn: deletePayment,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["payment-summary"] });
       toast.success("Payment deleted");
     },
     onError: (e: any) =>
@@ -255,25 +277,25 @@ export default function DashboardPage() {
   const widgets = [
     {
       label: "Total Payments",
-      value: totalCount,
+      value: allSummary.data?.total ?? 0,
       icon: CreditCard,
       color: "text-indigo-400 bg-indigo-500/10",
     },
     {
       label: "Success",
-      value: payments.filter((p) => p.status === "completed").length,
+      value: completedSummary.data?.total ?? 0,
       icon: CheckCircle2,
       color: "text-emerald-400 bg-emerald-500/10",
     },
     {
       label: "Processing",
-      value: payments.filter((p) => p.status === "processing").length,
+      value: processingSummary.data?.total ?? 0,
       icon: Clock,
       color: "text-amber-400 bg-amber-500/10",
     },
     {
       label: "Failed",
-      value: payments.filter((p) => p.status === "failed").length,
+      value: failedSummary.data?.total ?? 0,
       icon: XCircle,
       color: "text-red-400 bg-red-500/10",
     },
