@@ -4,16 +4,35 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { login as loginAPI } from "@/services/auth.service";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-
-    navigate("/", { replace: true });
+    setError("");
+    setLoading(true);
+    try {
+      const user = await loginAPI({ email, password });
+      login(user.token, user.email);
+      navigate("/", { replace: true });
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Login failed. Please check your credentials.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -49,6 +68,13 @@ export default function LoginPage() {
 
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="size-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -76,12 +102,36 @@ export default function LoginPage() {
               />
             </div>
 
-            <Button className="w-full" type="submit">
-              Sign in
+            <Button className="w-full" type="submit" disabled={loading}>
+              {loading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Sign in"
+              )}
             </Button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-border text-center"></div>
+          <div className="mt-6 pt-4 border-t border-border text-center">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium mb-2">
+              Demo accounts
+            </p>
+            <div className="text-sm text-muted-foreground leading-relaxed">
+              <code className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-xs font-mono">
+                cs@test.com
+              </code>
+              {" / "}
+              <code className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-xs font-mono">
+                operation@test.com
+              </code>
+              <br />
+              <span>
+                password:{" "}
+                <code className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-xs font-mono">
+                  password
+                </code>
+              </span>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
