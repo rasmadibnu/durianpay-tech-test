@@ -1,30 +1,61 @@
-Scaffold demonstrating entity / repository / usecase / service separation.
+# Backend
 
-generate openapi:
+Go API for the payment dashboard.
 
-```bash
-make openapi-gen
-```
+## Prerequisites
 
-generate JWT_SECRET:
+- Go 1.21+
+- CGO enabled
+- A local C toolchain for `sqlite3`
 
-```bash
-make gen-secret
-```
-
-Run server:
+## Setup
 
 ```bash
 cp env.sample .env
+make dep
 make tool-openapi
 make openapi-gen
-make dep
 make gen-secret
+```
+
+## Run
+
+```bash
+CGO_ENABLED=1 go run main.go
+```
+
+Or via the backend makefile:
+
+```bash
 make run
 ```
 
-API:
+The API starts on `http://localhost:8080`.
 
-- POST /dashboard/v1/auth/login {email,password}
-- GET /dashboard/v1/payments?sort=sort,status=status,id=id
-- PUT /dashboard/v1/payment/{id}/review
+## OpenAPI
+
+Generate server/types from the root spec:
+
+```bash
+make tool-openapi
+make openapi-gen
+```
+
+## Tests
+
+Run all backend tests:
+
+```bash
+CGO_ENABLED=1 go test ./... -v
+```
+
+Run one package:
+
+```bash
+go test ./internal/module/payment/usecase -v
+```
+
+## Coverage Scope
+
+- Repository tests for merchant, payment, and user modules
+- Usecase tests for auth, merchant, payment, and user modules
