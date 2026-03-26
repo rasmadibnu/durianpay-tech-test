@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - HTTP_ADDR=:8080
+      - JWT_SECRET=docker-secret-change-in-production
+      - JWT_EXPIRED=24h
+      - OPENAPIYAML_LOCATION=./openapi.yaml
+    volumes:
+      - db-data:/app/data
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  db-data:
